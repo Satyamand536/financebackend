@@ -126,13 +126,7 @@ Run `npm run seed` to populate the database with realistic demo data:
 - 4 users across all roles
 - ~60 financial records spread over the last 6 months
 
-**Test Credentials (after seeding):**
 
-| Role    | Email                     | Password      |
-|---------|---------------------------|---------------|
-| ADMIN   | admin@financeapp.dev      | Admin@12345   |
-| ANALYST | analyst@financeapp.dev    | Analyst@12345 |
-| VIEWER  | viewer@financeapp.dev     | Viewer@12345  |
 
 > ⚠️ The seeder will wipe all existing data before inserting. Never run in production.
 
@@ -156,8 +150,6 @@ Register a new user. Only `VIEWER` role is created by default. Admins should use
 ```json
 {
   "name": "Jane Doe",
-  "email": "jane@example.com",
-  "password": "securepassword123",
   "role": "VIEWER"
 }
 ```
@@ -180,10 +172,6 @@ Authenticate and receive a JWT token.
 
 **Request Body:**
 ```json
-{
-  "email": "admin@financeapp.dev",
-  "password": "Admin@12345"
-}
 ```
 
 **Response `200`:**
