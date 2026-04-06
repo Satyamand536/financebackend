@@ -1,0 +1,158 @@
+### -------------------------------------------------------------
+### FINANCE DASHBOARD API - TEST SUITE
+### Required VS Code Extension: "REST Client" (by Huachao Mao)
+### -------------------------------------------------------------
+
+@baseUrl = http://localhost:5000/api/v1
+
+### =============================================================
+### 1. HEALTH CHECK
+### =============================================================
+GET http://localhost:5000/
+Content-Type: application/json
+
+###
+GET http://localhost:5000/health
+Content-Type: application/json
+
+
+### =============================================================
+### 2. AUTHENTICATION & TOKENS
+### =============================================================
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@financeapp.dev",
+  "password": "Admin@12345"
+}
+
+### (Run the above login request first. The token will be saved to a variable automatically)
+@adminToken = {{loginAdmin.response.body.token}}
+
+# @name loginAnalyst
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "analyst@financeapp.dev",
+  "password": "Analyst@12345"
+}
+###
+@analystToken = {{loginAnalyst.response.body.token}}
+
+# @name loginViewer
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "viewer@financeapp.dev",
+  "password": "Viewer@12345"
+}
+###
+@viewerToken = {{loginViewer.response.body.token}}
+
+
+### =============================================================
+### 3. USER MANAGEMENT (Only Admin can manage other users)
+### =============================================================
+
+# Get my own profile (Works for any role)
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{adminToken}}
+
+### Get All Users (Admin Only)
+GET {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+
+
+### =============================================================
+### 4. DASHBOARD ANALYTICS (Available to all roles)
+### =============================================================
+
+# Get complete dashboard summary (Totals, Category Breakdown, Recent Activity)
+GET {{baseUrl}}/dashboard/summary
+Authorization: Bearer {{adminToken}}
+
+### Filter dashboard by date range
+GET {{baseUrl}}/dashboard/summary?startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer {{adminToken}}
+
+
+### =============================================================
+### 5. FINANCE RECORDS (Admins = CRUD, Analysts/Viewers = Read Only)
+### =============================================================
+
+# List Finance Records (Pagination & Sorting)
+GET {{baseUrl}}/finance?page=1&limit=5&sort=-date
+Authorization: Bearer {{adminToken}}
+
+### Filter Records by Type (Income or Expense)
+GET {{baseUrl}}/finance?type=INCOME
+Authorization: Bearer {{adminToken}}
+
+### CREATE Record - Successful (Admin Token)
+# @name createRecord
+POST {{baseUrl}}/finance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "amount": 7500,
+  "type": "INCOME",
+  "category": "Bonus",
+  "date": "2026-01-15T00:00:00Z",
+  "note": "Yearly completion bonus"
+}
+###
+@newRecordId = {{createRecord.response.body.data._id}}
+
+### UPDATE Record
+PUT {{baseUrl}}/finance/{{newRecordId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "amount": 8000,
+  "note": "Updated bonus amount"
+}
+
+### DELETE Record (Soft Delete)
+DELETE {{baseUrl}}/finance/{{newRecordId}}
+Authorization: Bearer {{adminToken}}
+
+
+### =============================================================
+### 6. ACCESS CONTROL NEGATIVE TESTS (To prove RBAC works!)
+### =============================================================
+
+### 1. Try to view dashboard without token (Should fail - 401 Unauthorized)
+GET {{baseUrl}}/dashboard/summary
+
+### 2. Analyst tries to GET users list (Should fail - 403 Forbidden)
+GET {{baseUrl}}/users
+Authorization: Bearer {{analystToken}}
+
+### 3. Viewer tries to CREATE a finance record (Should fail - 403 Forbidden)
+POST {{baseUrl}}/finance
+Authorization: Bearer {{viewerToken}}
+Content-Type: application/json
+
+{
+  "amount": 1000,
+  "type": "EXPENSE",
+  "category": "Pizza",
+  "date": "2026-01-15T00:00:00Z"
+}
+
+### 4. Admin tries to create a record with bad data (Validation test - 400 Bad Request)
+POST {{baseUrl}}/finance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "amount": -500,
+  "type": "INVALID_TYPE"
+}
